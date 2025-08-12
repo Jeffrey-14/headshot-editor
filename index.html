@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Headshot Editor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            color: #333;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .upload-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            border: 3px dashed #ddd;
+            margin-bottom: 20px;
+        }
+        
+        .upload-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        
+        .image-editor {
+            display: none;
+            grid-template-columns: 1fr 300px;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .image-preview {
+            text-align: center;
+        }
+        
+        .preview-canvas {
+            max-width: 100%;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        .controls {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            height: fit-content;
+        }
+        
+        .control-group {
+            margin-bottom: 20px;
+        }
+        
+        .control-group label {
+            display: block;
+            color: #555;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        .slider {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+        
+        .value-display {
+            background: #667eea;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            .image-editor {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Professional Headshot Editor</h1>
+            <p>Upload your photo and create a perfect professional headshot</p>
+        </div>
+        
+        <div class="upload-section">
+            <div style="font-size: 3rem; margin-bottom: 20px;">📸</div>
+            <h3>Upload Your Photo</h3>
+            <input type="file" id="fileInput" class="file-input" accept="image/*">
+            <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                Choose Photo
+            </button>
+        </div>
+        
+        <div class="image-editor" id="imageEditor">
+            <div class="image-preview">
+                <canvas id="canvas" class="preview-canvas"></canvas>
+            </div>
+            
+            <div class="controls">
+                <h3 style="margin-bottom: 20px; color: #333;">Enhance Your Photo</h3>
+                
+                <div class="control-group">
+                    <label>Brightness <span id="brightnessValue" class="value-display">1.0</span></label>
+                    <input type="range" id="brightness" class="slider" min="0.5" max="2" step="0.1" value="1">
+                </div>
+                
+                <div class="control-group">
+                    <label>Contrast <span id="contrastValue" class="value-display">1.0</span></label>
+                    <input type="range" id="contrast" class="slider" min="0.5" max="2" step="0.1" value="1">
+                </div>
+                
+                <div class="control-group">
+                    <label>Saturation <span id="saturationValue" class="value-display">1.0</span></label>
+                    <input type="range" id="saturation" class="slider" min="0" max="2" step="0.1" value="1">
+                </div>
+                
+                <div class="control-group">
+                    <label>Exposure <span id="exposureValue" class="value-display">0</span></label>
+                    <input type="range" id="exposure" class="slider" min="-1" max="1" step="0.1" value="0">
+                </div>
+                
+                <button class="btn btn-primary" onclick="applyProfessionalPreset()">✨ Professional Preset</button>
+                <button class="btn btn-secondary" onclick="resetControls()">🔄 Reset</button>
+                <button class="btn btn-primary" onclick="downloadImage()">⬇️ Download</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let originalImage = null;
+        let canvas = document.getElementById('canvas');
+        let ctx = canvas.getContext('2d');
+        
+        document.getElementById('fileInput').addEventListener('change', handleFileSelect);
+        
+        // Add event listeners for all controls
+        ['brightness', 'contrast', 'saturation', 'exposure'].forEach(id => {
+            document.getElementById(id).addEventListener('input', applyFilters);
+        });
+        
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    setupCanvas(img);
+                    document.getElementById('imageEditor').style.display = 'grid';
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        function setupCanvas(img) {
+            originalImage = img;
+            
+            // Calculate size for professional headshot (3:4 ratio, focused on head/shoulders)
+            const aspectRatio = 3/4;
+            let newWidth, newHeight;
+            
+            if (img.width / img.height > aspectRatio) {
+                newHeight = 500;
+                newWidth = newHeight * aspectRatio;
+            } else {
+                newWidth = 400;
+                newHeight = newWidth / aspectRatio;
+            }
+            
+            canvas.width = newWidth;
+            canvas.height = newHeight;
+            
+            // Draw image with proper cropping for headshot
+            const cropWidth = Math.min(img.width, img.height * aspectRatio);
+            const cropHeight = Math.min(img.height, img.width / aspectRatio);
+            const cropX = (img.width - cropWidth) / 2;
+            const cropY = Math.max(0, (img.height - cropHeight) * 0.2); // Focus on upper portion
+            
+            ctx.drawImage(img, cropX, cropY, cropWidth, cropHeight, 0, 0, newWidth, newHeight);
+            applyFilters();
+        }
+        
+        function applyFilters() {
+            if (!originalImage) return;
+            
+            const brightness = document.getElementById('brightness').value;
+            const contrast = document.getElementById('contrast').value;
+            const saturation = document.getElementById('saturation').value;
+            const exposure = document.getElementById('exposure').value;
+            
+            // Update display values
+            document.getElementById('brightnessValue').textContent = brightness;
+            document.getElementById('contrastValue').textContent = contrast;
+            document.getElementById('saturationValue').textContent = saturation;
+            document.getElementById('exposureValue').textContent = exposure;
+            
+            // Clear canvas and redraw with filters
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Apply CSS filters
+            const filterString = `brightness(${brightness}) contrast(${contrast}) saturate(${saturation}) 
+                                 ${exposure > 0 ? `brightness(${1 + parseFloat(exposure)})` : 
+                                   exposure < 0 ? `brightness(${1 + parseFloat(exposure)})` : ''}`;
+            ctx.filter = filterString;
+            
+            // Redraw the cropped image
+            const aspectRatio = 3/4;
+            const cropWidth = Math.min(originalImage.width, originalImage.height * aspectRatio);
+            const cropHeight = Math.min(originalImage.height, originalImage.width / aspectRatio);
+            const cropX = (originalImage.width - cropWidth) / 2;
+            const cropY = Math.max(0, (originalImage.height - cropHeight) * 0.2);
+            
+            ctx.drawImage(originalImage, cropX, cropY, cropWidth, cropHeight, 0, 0, canvas.width, canvas.height);
+            
+            // Reset filter for future operations
+            ctx.filter = 'none';
+        }
+        
+        function applyProfessionalPreset() {
+            // Professional headshot settings
+            document.getElementById('brightness').value = 1.1;
+            document.getElementById('contrast').value = 1.2;
+            document.getElementById('saturation').value = 1.1;
+            document.getElementById('exposure').value = 0.1;
+            applyFilters();
+        }
+        
+        function resetControls() {
+            document.getElementById('brightness').value = 1;
+            document.getElementById('contrast').value = 1;
+            document.getElementById('saturation').value = 1;
+            document.getElementById('exposure').value = 0;
+            applyFilters();
+        }
+        
+        function downloadImage() {
+            if (!canvas) return;
+            
+            try {
+                // Create high-quality download
+                canvas.toBlob(function(blob) {
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.download = 'professional-headshot.jpg';
+                    link.href = url;
+                    
+                    // Add to DOM temporarily and click
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    // Clean up
+                    URL.revokeObjectURL(url);
+                }, 'image/jpeg', 0.95);
+            } catch (error) {
+                // Fallback method
+                const link = document.createElement('a');
+                link.download = 'professional-headshot.jpg';
+                link.href = canvas.toDataURL('image/jpeg', 0.95);
+                
+                // Force download in new tab if direct click fails
+                const newWindow = window.open();
+                newWindow.document.write('<img src="' + link.href + '" />');
+                newWindow.document.title = 'Right-click and Save As...';
+            }
+        }
+    </script>
+</body>
+</html>
